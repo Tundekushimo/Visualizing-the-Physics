@@ -232,7 +232,7 @@ footer p{margin:0 0 6px}
 <script>
 "use strict";
 /* ---- SITE SETTINGS: edit these two lines when you publish an update ---- */
-const APP_VERSION='Version 0.4 · prototype · November 2026';
+const APP_VERSION='Version 0.5 · prototype · November 2026';
 const FEEDBACK_URL='https://forms.gle/9TLxRvC43iRU1DPz7';   // paste a Microsoft Forms / Qualtrics link here; the feedback button stays hidden while this is empty
 /* ------------------------------------------------------------------------ */
 const D2R=Math.PI/180, TAU=2*Math.PI;
@@ -1643,6 +1643,57 @@ LABS.push(
 );
 
 /* =========================================================
+   SPECIAL RELATIVITY (Physics II)
+   ========================================================= */
+LABS.push(
+{ id:'relativity', course:'II', topic:'Special relativity', title:'Special Relativity',
+  blurb:'Nothing outruns light, and light moves at the same speed for every observer. Follow that one rule and moving clocks run slow, moving objects get shorter, and a travelling twin comes home younger.',
+  dynamic:true, h:0.004, runLabel:'Start',
+  params:[
+    {id:'mode',label:'Show',type:'select',options:['Light clocks (time dilation)','Length contraction','Twin trip'],val:'Light clocks (time dilation)'},
+    {id:'b',label:'Speed v (as a fraction of c)',unit:'c',min:0,max:.99,step:.01,val:.6},
+    {id:'D',label:'Distance to the star',unit:'light-years',min:1,max:20,step:.5,val:4,show:P=>P.mode==='Twin trip'}
+  ],
+  g(P){return 1/Math.sqrt(1-P.b*P.b);},
+  reset(){this.S={t:0,trail:[]};},
+  step(P,dt){const S=this.S;S.t+=dt;if(P.mode==='Twin trip'){const yr=S.t/.5;if(yr>=2*P.D/Math.max(P.b,1e-6))return'stop';}if(S.t>600)return'stop';},
+  tri(u){const f=u-Math.floor(u);return f<.5?2*f:2-2*f;},
+  draw(ctx,w,h,P){const S=this.S,g=this.g(P),t=S.t;
+    if(P.mode==='Light clocks (time dilation)'){const L=Math.min(110,h*.3),c=L*2/1.2,T0=2*L/c,clk=(x,y,label,ph,col)=>{line(ctx,x-22,y,x+22,y,C.ink,3);line(ctx,x-22,y+L,x+22,y+L,C.ink,3);ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y+L-ph*L,5,0,TAU);ctx.fill();text(ctx,label,x,y+L+18,C.ink,{align:'center',size:10.5,weight:600});};
+      const y1=24;clk(w*.12,y1,'clock at rest',this.tri(t/T0),C.accent);
+      const span=w*.75,x0=w*.22,v=P.b*c,xm=x0+((v*t)%span),ph=this.tri(t/(g*T0));S.trail.push([xm,y1+L-ph*L]);if(S.trail.length>400)S.trail.shift();
+      ctx.save();ctx.strokeStyle=C.accent;ctx.globalAlpha=.4;ctx.lineWidth=1.5;ctx.beginPath();S.trail.forEach((p,i)=>{if(i&&Math.abs(p[0]-S.trail[i-1][0])>20)ctx.moveTo(p[0],p[1]);else i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);});ctx.stroke();ctx.restore();
+      clk(xm,y1,'moving clock →',ph,C.accent);
+      const n0=Math.floor(t/T0),n1=Math.floor(t/(g*T0)),by=y1+L+40;text(ctx,'Ticks counted in our frame:',12,by,C.ink,{size:11.5,weight:600,font:SANS});
+      [['clock at rest',n0,C.s3],['moving clock',n1,C.s2]].forEach(([l,n,col],i)=>{const y=by+12+i*26,mx=Math.max(n0,1);text(ctx,l,12,y+13,C.muted,{size:10.5});ctx.fillStyle=C.grid;ctx.fillRect(110,y,w-190,16);ctx.fillStyle=col;ctx.fillRect(110,y,(w-190)*n/Math.max(mx,1),16);text(ctx,String(n),w-70,y+13,C.ink,{size:11,weight:600});});
+      text(ctx,'In the moving clock the light takes a longer, slanted path',12,by+78,C.muted,{size:10.5,font:SANS});text(ctx,'at the same speed c, so each tick takes γ times longer.',12,by+93,C.muted,{size:10.5,font:SANS});}
+    else if(P.mode==='Length contraction'){const L0=w*.32,Lm=L0/g,sh=34,ship=(x,y,len,label,col)=>{ctx.fillStyle=col;ctx.globalAlpha=.85;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+len*.85,y);ctx.lineTo(x+len,y+sh/2);ctx.lineTo(x+len*.85,y+sh);ctx.lineTo(x,y+sh);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
+        for(let k=0;k<=10;k++){const xx=x+len*k/10*.85;line(ctx,xx,y+sh,xx,y+sh+(k%5?5:9),C.ink,1);}text(ctx,label,x,y-8,C.ink,{size:10.5,weight:600});};
+      ship(w*.08,40,L0,'At rest: proper length L₀',C.s1);const span=w*.9,xm=((P.b*120*t)%(span+Lm))-Lm;ctx.save();ctx.beginPath();ctx.rect(0,0,w,h);ctx.clip();ship(xm,40+sh+60,Lm,'Moving at '+P.b+'c: measured length L₀/γ',C.s2);ctx.restore();
+      text(ctx,'The ten tick marks are the same ship sections. Only lengths along the motion shrink; the height stays the same.',12,h*.62,C.muted,{size:10.5,font:SANS});}
+    else{const yr=Math.min(t/.5,2*P.D/Math.max(P.b,1e-6)),T=2*P.D/Math.max(P.b,1e-6),half=T/2,x=yr<=half?P.b*yr:P.D-P.b*(yr-half),xe=w*.1,xs=w*.88,X=q=>xe+(xs-xe)*q/P.D,ty=h*.24;
+      ctx.fillStyle=C.s1;ctx.beginPath();ctx.arc(xe,ty,14,0,TAU);ctx.fill();text(ctx,'Earth',xe,ty+30,C.ink,{align:'center',size:10.5,weight:600});
+      ctx.fillStyle=C.accent;ctx.beginPath();ctx.arc(xs,ty,9,0,TAU);ctx.fill();text(ctx,'star, '+P.D+' ly away',xs,ty+30,C.ink,{align:'center',size:10.5,weight:600});
+      line(ctx,xe,ty,xs,ty,C.grid,1,[4,4]);const sx=X(x),dir=yr<=half?1:-1;ctx.fillStyle=C.s2;ctx.beginPath();ctx.moveTo(sx+dir*14,ty-18);ctx.lineTo(sx-dir*10,ty-26);ctx.lineTo(sx-dir*10,ty-10);ctx.closePath();ctx.fill();text(ctx,'travelling twin',sx,ty-32,C.s2,{align:'center',size:10});
+      const by=h*.46,ae=yr,at=yr/g,mx=T;text(ctx,'Time that has passed (years)',12,by,C.ink,{size:11.5,weight:600,font:SANS});
+      [['Twin on Earth',ae,C.s1],['Travelling twin',at,C.s2]].forEach(([l,v,col],i)=>{const y=by+14+i*30;text(ctx,l,12,y+14,C.muted,{size:10.5});ctx.fillStyle=C.grid;ctx.fillRect(120,y,w-200,18);ctx.fillStyle=col;ctx.fillRect(120,y,(w-200)*v/mx,18);text(ctx,fmt(v,2),w-72,y+14,C.ink,{size:11,weight:600});});
+      if(yr>=T-1e-9)text(ctx,'Home again: the travelling twin is '+fmt(T-T/g,2)+' years younger.',12,by+82,C.accent,{size:12,weight:700,font:SANS});}
+    const gx=w*.62,gy=h*.68,gw=w*.36,gh=h*.3-6,pts=[];for(let b=0;b<=.99;b+=.01)pts.push([b,1/Math.sqrt(1-b*b)]);
+    const gr=miniChart(ctx,gx,gy,gw,gh,{title:'γ = 1/√(1 − v²/c²)',xmin:0,xmax:1,ymin:1,ymax:7.5,xl:'v/c',series:[{pts,color:C.s4}]});ctx.fillStyle=C.accent;ctx.beginPath();ctx.arc(gr.px(P.b),gr.py(Math.min(g,7.5)),5,0,TAU);ctx.fill();},
+  readouts(P){const g=this.g(P),out=[['Speed',fmt(P.b,2),'c'],['Lorentz factor γ',fmt(g,3),''],['Moving clock runs slow by',fmt(g,3)+'×',''],['Moving length shrinks to',fmt(100/g,1),'%']];
+    if(P.mode==='Twin trip'){const T=2*P.D/Math.max(P.b,1e-6);out.push(['Trip time on Earth',P.b?fmt(T,2):'∞','years'],['Trip time for the traveller',P.b?fmt(T/g,2):'∞','years']);}return out;},
+  cols:[['b','v/c'],['g','γ'],['ig','1/γ'],['b2','(v/c)²'],['ig2','1/γ²']],
+  record(P){const g=this.g(P);return{b:P.b,g,ig:1/g,b2:P.b*P.b,ig2:1/(g*g)};},
+  plot:['b','g'], fitHint:'γ vs v/c curves sharply upward near c. Plot 1/γ² against (v/c)² instead: it is a straight line with slope −1 and intercept 1.',
+  guide:{objective:'Use the constancy of the speed of light to explain time dilation, length contraction and the twin paradox.',
+    predict:'At what speed does a moving clock run at half the rate of a clock at rest? Is it closer to 0.5c, 0.87c or 0.99c?',
+    steps:['Light clocks: start at 0.6c and compare the tick counts. Check the ratio against γ.','Raise the speed to 0.9c, then 0.99c. Record γ at several speeds and plot it.','Length contraction: compare the moving ship with the one at rest at the same speeds.','Twin trip: send the twin to a star 4 light-years away at 0.6c and at 0.99c. Who is younger on return, and by how much?'],
+    eqs:['γ = 1 / √(1 − v²/c²)','Time dilation: Δt = γ Δτ   (Δτ = proper time)','Length contraction: L = L₀ / γ','Speeds always below c'],
+    questions:['Each twin sees the other’s clock running slow. Why does only the travelling twin come home younger?','Why don’t we notice time dilation in everyday life?','Why does the ship shrink only along its direction of motion?']}
+}
+);
+
+/* =========================================================
    REAL WORLD (Physics I and II applied to everyday technology)
    numbers marked "model" are round illustrative values chosen for the simulation, not measured data
    ========================================================= */
@@ -2466,7 +2517,7 @@ ro.observe($('#screen'));ro.observe(plotCv.parentElement);
 
 const UNITS={I:[['Ch 1–2 · Motion in a line',['motion1d']],['Ch 3–4 · Vectors & 2D motion',['vectors','projectile']],['Ch 5–8 · Forces',['atwood','incline','circular']],['Ch 9–11 · Energy & momentum',['work','collisions']],['Ch 12 · Rotation',['rolling']],['Ch 13–14 · Gravity & fluids',['orbits','buoyancy']],['Ch 15–17 · Oscillations & waves',['pendulum','spring','waves','superpose']],['Ch 18–19 · Heat & thermodynamics',['gas','thermo']]],
   R:[['Physics I in real life',['crash','braking','coaster']],['Physics II in real life',['detector','defib','breaker','eyes']]],
-  II:[['Ch 22 · Charges & forces',['coulomb','conductors','charging']],['Ch 23 · Electric field',['efield','distributions','motion']],['Ch 24 · Gauss’s law',['gauss']],['Ch 25–26 · Potential & capacitors',['energy','plates','capacitor']],['Ch 27–28 · Current & circuits',['ohm','dccircuit','rc']],['Ch 29 · Magnetic field',['bwire','bfield']],['Ch 30 · Induction',['faraday']],['Ch 31–32 · EM waves & AC',['emwave','ac']],['Ch 33–35 · Wave & ray optics',['slits','refraction','mirrors','lens']]]};
+  II:[['Ch 22 · Charges & forces',['coulomb','conductors','charging']],['Ch 23 · Electric field',['efield','distributions','motion']],['Ch 24 · Gauss’s law',['gauss']],['Ch 25–26 · Potential & capacitors',['energy','plates','capacitor']],['Ch 27–28 · Current & circuits',['ohm','dccircuit','rc']],['Ch 29 · Magnetic field',['bwire','bfield']],['Ch 30 · Induction',['faraday']],['Ch 31–32 · EM waves & AC',['emwave','ac']],['Ch 33–35 · Wave & ray optics',['slits','refraction','mirrors','lens']],['Modern physics',['relativity']]]};
 function renderNav(){const course=lab.course;document.querySelectorAll('.course button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.course===course));
   $('#labNav').innerHTML=UNITS[course].map(([u,ids])=>`<div class="navgroup"><span class="kicker">${u}</span><div class="chips">${ids.filter(id=>byId[id]).map(id=>{const l=byId[id];return `<button type="button" class="chip" data-lab="${l.id}" aria-current="${l.id===lab.id}">${l.title}<small>${l.topic}</small></button>`;}).join('')}</div></div>`).join('');
   $('#labNav').querySelectorAll('.chip').forEach(b=>b.onclick=()=>selectLab(b.dataset.lab));}
